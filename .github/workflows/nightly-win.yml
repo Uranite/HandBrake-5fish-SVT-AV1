@@ -9,6 +9,10 @@ on:
     - cron: '30 7 * * 1,5'
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   TOOLCHAIN_VERSION: "20260616"
   TOOLCHAIN_SHA: "a1f7968b48ba8d949194d6dee6c76f3cd0f61cba91658599af2c2c834a55ab87"
