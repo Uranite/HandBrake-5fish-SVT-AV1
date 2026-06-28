@@ -1,6 +1,6 @@
 # HandBrake-5fish-SVT-AV1
 ### Purpose of the project
-This project contains the patches needed to replace SVT-AV1 with 5fish-SVT-AV1 inside HandBrake.\
+This project contains the patches needed to replace SVT-AV1 with 5fish/SVT-AV1 inside HandBrake.\
 In addition, using GitHub Actions, nightly build of patched executables will be released.
 ### Instructions to patch/build
 * Run ```patch.sh``` on linux. The script will patch the previously cloned HandBrake repo. If you want to also clone it you can use ```--clone``` argument.
