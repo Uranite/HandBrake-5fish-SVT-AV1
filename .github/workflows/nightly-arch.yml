@@ -18,15 +18,18 @@ jobs:
     name: Build on Arch
     runs-on: ubuntu-24.04
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
+
+    - name: Cache week
+      run: echo "WEEK=$(date -u +%G-W%V)" >> "$GITHUB_ENV"
 
     - name: Rust Cache
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: |
           ~/.cargo/registry
           ~/.cargo/git
-        key: ${{ runner.os }}-cargo-${{ github.run_id }}
+        key: ${{ runner.os }}-cargo-${{ env.WEEK }}
         restore-keys: |
           ${{ runner.os }}-cargo-
 
@@ -38,7 +41,7 @@ jobs:
 
     - name: Cargo-C Toolchain Cache
       id: linux-cargo-c-toolchain
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: |
           ~/.cargo/bin/cargo-capi
@@ -56,7 +59,7 @@ jobs:
       uses: edlanglois/pkgbuild-action@v1.1.9
 
     - name: Upload HandBrake-SVT-AV1-PSY Archive
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: HandBrakePKG
         path: ${{ steps.makepkg.outputs.pkgfile0 }}
@@ -64,16 +67,16 @@ jobs:
 
   deploy_nightly:
     name: Deploy Nightly Build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: build
     if: github.event_name != 'pull_request'
     permissions:
       contents: write
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
        
     - name: Download Artifacts - PKG Arch Linux
-      uses: actions/download-artifact@v7
+      uses: actions/download-artifact@v8
       with:
         name: HandBrakePKG
         path: arch/
@@ -93,12 +96,9 @@ jobs:
       
     # Publishing the Release
     - name: Remove the old Release
-      uses: dev-drprasad/delete-older-releases@v0.3.4
-      with:
-        keep_latest: 0
-        delete_tag_pattern: "arch"
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: gh release delete arch --yes --cleanup-tag || true
           
     - uses: ncipollo/release-action@v1
       with:

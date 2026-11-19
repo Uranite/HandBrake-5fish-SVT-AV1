@@ -18,15 +18,18 @@ jobs:
     name: Build on Linux
     runs-on: ubuntu-24.04
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
+
+    - name: Cache week
+      run: echo "WEEK=$(date -u +%G-W%V)" >> "$GITHUB_ENV"
 
     - name: Rust Cache
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: |
           ~/.cargo/registry
           ~/.cargo/git
-        key: ${{ runner.os }}-cargo-${{ github.run_id }}
+        key: ${{ runner.os }}-cargo-${{ env.WEEK }}
         restore-keys: |
           ${{ runner.os }}-cargo-
 
@@ -38,7 +41,7 @@ jobs:
 
     - name: Cargo-C Toolchain Cache
       id: linux-cargo-c-toolchain
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: |
           ~/.cargo/bin/cargo-capi
@@ -47,12 +50,12 @@ jobs:
         key: linux-cargo-c-toolchain-${{ env.CARGOC_VERSION }}
 
     - name: Setup Environment Cache
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: |
           ./apt-cache
           ~/.local/share/flatpak
-        key: setup-env-${{ runner.os }}-${{ github.run_id }}
+        key: setup-env-${{ runner.os }}-${{ hashFiles('.github/workflows/nightly-flatpak.yml') }}
         restore-keys: |
           setup-env-${{ runner.os }}-
 
@@ -75,13 +78,10 @@ jobs:
         sudo apt-get install flatpak flatpak-builder
         flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
         flatpak install --user -y flathub \
-            org.freedesktop.Sdk//25.08 \
-            org.freedesktop.Platform//25.08 \
-            org.gnome.Platform//49 \
-            org.gnome.Sdk//49 \
-            org.freedesktop.Sdk.Extension.llvm21//25.08 \
-            org.freedesktop.Sdk.Extension.rust-stable//25.08
-        sudo apt-get upgrade -y
+            org.gnome.Platform//51 \
+            org.gnome.Sdk//51 \
+            org.freedesktop.Sdk.Extension.llvm22//26.08 \
+            org.freedesktop.Sdk.Extension.rust-stable//26.08
         sudo cp -rn /var/cache/apt/archives/*.deb ./apt-cache/ || true
         sudo chown -R $USER:$USER ./apt-cache
 
@@ -102,13 +102,19 @@ jobs:
         ./configure --launch-jobs=0 --flatpak --enable-qsv --enable-vce --enable-nvenc --enable-nvdec --enable-libdovi
 
     - name: Flatpak Ccache
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: |
           HandBrake/build/.flatpak-builder/ccache
-        key: flatpak-ccache-${{ github.run_id }}
+        key: flatpak-ccache-gnome51-${{ env.WEEK }}
         restore-keys: |
+          flatpak-ccache-gnome51-
           flatpak-ccache-
+
+    - name: Configure ccache
+      run: |
+        mkdir -p HandBrake/build/.flatpak-builder/ccache
+        ccache -d HandBrake/build/.flatpak-builder/ccache -M 1500M
 
     - name: Build HandBrake
       run: |
@@ -123,7 +129,7 @@ jobs:
         echo '```' >> $GITHUB_STEP_SUMMARY
 
     - name: Upload Assets
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: HandBrake-Flatpak
         path: ./HandBrake/build/pkg/flatpak/*.flatpak
@@ -131,16 +137,16 @@ jobs:
 
   deploy_nightly:
     name: Deploy Nightly Build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: build
     if: github.event_name != 'pull_request'
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
        
       - name: Download Artifacts - Flatpak Binaries
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: HandBrake-Flatpak
           path: flatpak/
@@ -160,12 +166,9 @@ jobs:
       
       # Publishing the Release
       - name: Remove the old Release
-        uses: dev-drprasad/delete-older-releases@v0.3.4
-        with:
-          keep_latest: 0
-          delete_tag_pattern: "flatpak"
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release delete flatpak --yes --cleanup-tag || true
           
       - uses: ncipollo/release-action@v1
         with:
