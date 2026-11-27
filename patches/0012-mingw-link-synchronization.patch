@@ -1,21 +1,9 @@
-diff --git a/libhb/module.defs b/libhb/module.defs
-index 61f9d1d..f55ee56 100644
---- a/libhb/module.defs
-+++ b/libhb/module.defs
-@@ -185,7 +185,7 @@ else
- endif
- 
- LIBHB.GCC.args.extra.dylib++ += -Wl,--out-implib,$(LIBHB.lib)
--LIBHB.GCC.l += bcrypt ws2_32 uuid ole32 gdi32 userenv ntdll
-+LIBHB.GCC.l += bcrypt ws2_32 uuid ole32 gdi32 userenv ntdll synchronization
- ifeq (1,$(FEATURE.mf))
-     LIBHB.GCC.l += mfplat strmiids
- endif
 diff --git a/test/module.defs b/test/module.defs
-index 7b1be8c..33e69a2 100644
 --- a/test/module.defs
 +++ b/test/module.defs
-@@ -89,7 +89,7 @@ ifeq (1,$(HAS.pthread))
+@@ -87,9 +87,9 @@
+ ifeq (1,$(HAS.pthread))
+     TEST.GCC.l += pthread
  else
      TEST.GCC.l += pthreadGC2
  endif
